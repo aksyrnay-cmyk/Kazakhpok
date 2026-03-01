@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://idteacher.netlify.app/sitemap.xml

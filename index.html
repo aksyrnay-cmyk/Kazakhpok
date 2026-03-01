@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDTEACHER</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            max-width: 600px;
+            width: 90%;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 20px 40px;
+            font-size: 1.5em;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: bold;
+            min-width: 200px;
+        }
+        .btn-teacher {
+            background: #2563eb;
+            color: white;
+            box-shadow: 0 5px 15px rgba(37,99,235,0.4);
+        }
+        .btn-teacher:hover {
+            background: #1d4ed8;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(37,99,235,0.5);
+        }
+        .btn-student {
+            background: #16a34a;
+            color: white;
+            box-shadow: 0 5px 15px rgba(22,163,74,0.4);
+        }
+        .btn-student:hover {
+            background: #15803d;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(22,163,74,0.5);
+        }
+        .subtitle {
+            color: #666;
+            margin-top: 30px;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 IDTEAHCHER</h1>
+        <div class="buttons">
+            <a href="teacher.html" class="btn btn-teacher">👨‍🏫 Мұғалім</a>
+            <a href="student.html" class="btn btn-student">👩‍🎓 Оқушы</a>
+        </div>
+        <p class="subtitle">Мұғалімдер мен оқушыларға арналған онлайн платформа</p>
+    </div>
+</body>
+</html>

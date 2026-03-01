@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <title>Мұғалім платформасы</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        :root { --primary: #2563eb; --success: #16a34a; --warning: #d97706; --danger: #dc2626; --bg: #f8fafc; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); padding: 20px; color: #1e293b; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        h2, h3 { text-align: center; color: #0f172a; }
+        
+        /* Tabs */
+        .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { padding: 12px 24px; cursor: pointer; border: 2px solid var(--primary); border-radius: 8px; background: white; color: var(--primary); font-weight: 600; transition: 0.3s; }
+        .tab-btn.active { background: var(--primary); color: white; }
+        
+        /* Sections */
+        .section { display: none; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fbfbfc; }
+        .section.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Inputs */
+        input[type="text"], textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
+        input[type="text"]:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .correct-ans { border-left: 5px solid var(--success) !important; }
+        
+        /* File input */
+        .file-input { margin: 8px 0; padding: 8px; background: #f1f5f9; border-radius: 8px; }
+        
+        /* Buttons */
+        .btn { width: 100%; padding: 14px; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 15px; }
+        .btn-add { background: var(--success); }
+        .btn-add:hover { background: #15803d; }
+        .btn-main { background: var(--primary); font-size: 18px; }
+        .btn-main:hover { background: #1d4ed8; }
+        
+        /* Task list */
+        .task-list { margin-top: 20px; max-height: 300px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; }
+        .task-item { background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; margin-bottom: 8px; }
+        .task-item img { max-width: 100px; max-height: 100px; border-radius: 4px; margin-top: 5px; }
+        .correct-badge { background: var(--success); color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; display: inline-block; }
+        
+        /* Monitoring Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: center; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f1f5f9; font-weight: 600; }
+        .badge { padding: 5px 10px; border-radius: 20px; color: white; font-size: 13px; font-weight: bold; display: inline-block; }
+        .b-green { background: var(--success); }
+        .b-yellow { background: var(--warning); }
+        .b-red { background: var(--danger); }
+        
+        .summary-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 20px; border-radius: 12px; margin-top: 30px; display: none; }
+
+        details { margin-top: 20px; background: #f1f5f9; padding: 15px; border-radius: 10px; }
+        summary { font-weight: bold; cursor: pointer; color: var(--primary); }
+        .question-block { border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 15px; background: white; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="creator-view">
+    <h2>📚 Тапсырма құрастыру</h2>
+    
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('test')">Тест</button>
+        <button class="tab-btn" onclick="switchTab('matching')">Сәйкестендіру</button>
+        <button class="tab-btn" onclick="switchTab('essay')">Эссе</button>
+    </div>
+
+    <div id="tab-test" class="section active">
+        <!-- Жеке тест қосу -->
+        <div class="question-block">
+            <input type="text" id="test-q" placeholder="Сұрақты жазыңыз...">
+            <div class="file-input">
+                <label>📷 Сурет қосу (қажет болса):</label>
+                <input type="file" id="test-image" accept="image/*">
+            </div>
+            <input type="text" id="opt0" class="correct-ans" placeholder="Вариант 1 (ДҰРЫС ЖАУАП)">
+            <input type="text" id="opt1" placeholder="Вариант 2">
+            <input type="text" id="opt2" placeholder="Вариант 3">
+            <input type="text" id="opt3" placeholder="Вариант 4">
+            <button class="btn btn-add" onclick="addTest()">➕ Тестті сақтау</button>
+        </div>
+        
+        <!-- Бірнеше тестті жылдам қосу -->
+        <details>
+            <summary>📦 Бірнеше тестті жылдам қосу</summary>
+            <textarea id="bulk-test-input" rows="6" placeholder="Формат: Сұрақ;дұрыс жауап;бұрыс1;бұрыс2;бұрыс3 (әр жолда бір тест)"></textarea>
+            <button class="btn btn-add" onclick="addBulkTests()">📦 Партиямен қосу</button>
+        </details>
+
+        <!-- Қосылған тесттер тізімі -->
+        <div id="test-list" class="task-list" style="display:none;">
+            <h4>📋 Қосылған тесттер:</h4>
+            <div id="test-items"></div>
+        </div>
+    </div>
+
+    <div id="tab-matching" class="section">
+        <div style="display: flex; gap: 15px;">
+            <div style="flex:1">
+                <p><strong>Сол жақ</strong> (мәтін міндетті емес)</p>
+                <input type="text" id="mlt" placeholder="Мәтін (қажет болса)">
+                <input type="file" id="mlf" accept="image/*" style="margin-top:5px">
+            </div>
+            <div style="flex:1">
+                <p><strong>Оң жақ</strong> (мәтін міндетті емес)</p>
+                <input type="text" id="mrt" placeholder="Мәтін (қажет болса)">
+                <input type="file" id="mrf" accept="image/*" style="margin-top:5px">
+            </div>
+        </div>
+        <button class="btn btn-add" onclick="addMatch()">➕ Жұпты сақтау</button>
+        
+        <!-- Қосылған сәйкестендірулер тізімі -->
+        <div id="matching-list" class="task-list" style="display:none;">
+            <h4>📋 Қосылған сәйкестендірулер:</h4>
+            <div id="matching-items"></div>
+        </div>
+    </div>
+
+    <div id="tab-essay" class="section">
+        <p style="font-size:14px; color:#64748b; margin-top:0;">Нұсқау: Оқушы жазуы тиіс сөзді екі жұлдызшамен белгілеңіз. Мысалы: Абай **1845** жылы туған.</p>
+        <textarea id="essay-text" rows="4" placeholder="Мәтінді осында жазыңыз..."></textarea>
+        <button class="btn btn-add" onclick="addEssay()">➕ Эссені сақтау</button>
+        
+        <!-- Қосылған эсселер тізімі -->
+        <div id="essay-list" class="task-list" style="display:none;">
+            <h4>📋 Қосылған эсселер:</h4>
+            <div id="essay-items"></div>
+        </div>
+    </div>
+
+    <div style="margin-top:20px; text-align:center; font-weight:bold; color:#475569;">
+        Қосылды: Тест (<span id="c-test">0</span>) | Сәйкестік (<span id="c-match">0</span>) | Эссе (<span id="c-essay">0</span>)
+    </div>
+
+    <button class="btn btn-main" onclick="saveAndStart()">🚀 ТАПСЫРМАНЫ БАСТАУ</button>
+</div>
+
+<div class="container" id="lobby-view" style="display:none;">
+    <h2>Оқушыларға арналған ID: <span id="room-id-display" style="color:var(--danger); font-size:40px;">Күтіңіз...</span></h2>
+    <div style="text-align:center; margin-bottom: 20px;">
+        <button class="btn btn-add" id="start-exam-btn" style="max-width:300px;" onclick="startExam()">🏁 ОРЫНДАУДЫ БАСТАУ</button>
+    </div>
+
+    <h3>📊 Оқушылар мониторингі</h3>
+    <table id="monitor-table">
+        <thead>
+            <tr id="monitor-head">
+                <th>Аты-жөні</th>
+                <th>Статус</th>
+            </tr>
+        </thead>
+        <tbody id="monitor-body"></tbody>
+    </table>
+
+    <div id="summary-report" class="summary-box"></div>
+</div>
+
+<script>
+    let tasks = { test: [], matching: [], essay: [] };
+    let sessionId = "";
+    let peer = null;
+    let students = {};
+
+    function switchTab(t) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById('tab-' + t).classList.add('active');
+    }
+
+    // Суретті қысу функциясы
+    async function compressImg(file) {
+        if (!file) return null;
+        return new Promise(resolve => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const maxWidth = 300;
+                    const scale = maxWidth / img.width;
+                    canvas.width = maxWidth;
+                    canvas.height = img.height * scale;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.7));
+                };
+            };
+        });
+    }
+
+    // Тест қосу (суретпен)
+    async function addTest() {
+        let q = document.getElementById('test-q').value;
+        let opts = [
+            document.getElementById('opt0').value,
+            document.getElementById('opt1').value,
+            document.getElementById('opt2').value,
+            document.getElementById('opt3').value
+        ];
+        
+        if(!q || !opts[0]) return alert("Сұрақ пен дұрыс жауапты толтырыңыз!");
+        
+        let imageFile = document.getElementById('test-image').files[0];
+        let imageData = imageFile ? await compressImg(imageFile) : null;
+        
+        tasks.test.push({ 
+            q, 
+            options: opts, 
+            answer: opts[0],
+            image: imageData 
+        });
+        
+        updateTestCounter();
+        displayTestList();
+        
+        document.getElementById('test-q').value = '';
+        document.getElementById('test-image').value = '';
+        document.querySelectorAll('#tab-test input[type="text"]').forEach(i => i.value = '');
+    }
+
+    // Бірнеше тестті қосу
+    async function addBulkTests() {
+        let bulkText = document.getElementById('bulk-test-input').value;
+        if (!bulkText.trim()) return alert("Мәтінді толтырыңыз!");
+        
+        let lines = bulkText.split('\n').filter(line => line.trim() !== '');
+        let addedCount = 0;
+        
+        for (let line of lines) {
+            let parts = line.split(';').map(p => p.trim());
+            if (parts.length < 2) continue;
+            
+            let question = parts[0];
+            let correct = parts[1];
+            let wrongs = parts.slice(2, 5);
+            while (wrongs.length < 3) wrongs.push('');
+            
+            let options = [correct, ...wrongs];
+            
+            tasks.test.push({ 
+                q: question, 
+                options: options, 
+                answer: correct,
+                image: null 
+            });
+            addedCount++;
+        }
+
+        if (addedCount > 0) {
+            updateTestCounter();
+            displayTestList();
+            document.getElementById('bulk-test-input').value = '';
+            alert(`${addedCount} тест сәтті қосылды!`);
+        }
+    }
+
+    // Тесттер тізімін көрсету
+    function displayTestList() {
+        let container = document.getElementById('test-list');
+        let itemsDiv = document.getElementById('test-items');
+        
+        if (tasks.test.length > 0) {
+            container.style.display = 'block';
+            let html = '';
+            tasks.test.forEach((test, index) => {
+                html += `<div class="task-item">
+                    <strong>${index + 1}. ${test.q}</strong>
+                    ${test.image ? `<br><img src="${test.image}" alt="Сурет">` : ''}
+                    <br><small>Нұсқалар: ${test.options.join(', ')}</small>
+                    <br><span class="correct-badge">✓ Дұрыс: ${test.answer}</span>
+                </div>`;
+            });
+            itemsDiv.innerHTML = html;
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    function updateTestCounter() {
+        document.getElementById('c-test').innerText = tasks.test.length;
+    }
+
+    // Сәйкестендіру қосу
+    async function addMatch() {
+        const lT = document.getElementById('mlt').value;
+        const rT = document.getElementById('mrt').value;
+        
+        const lI = await compressImg(document.getElementById('mlf').files[0]);
+        const rI = await compressImg(document.getElementById('mrf').files[0]);
+        
+        if((!lT && !lI) || (!rT && !rI)) {
+            return alert("Әр жақта кемінде бір мәтін немесе сурет болуы керек!");
+        }
+        
+        tasks.matching.push({ 
+            left: { text: lT || null, img: lI }, 
+            right: { text: rT || null, img: rI } 
+        });
+        
+        document.getElementById('c-match').innerText = tasks.matching.length;
+        displayMatchingList();
+        
+        document.getElementById('mlt').value = '';
+        document.getElementById('mrt').value = '';
+        document.getElementById('mlf').value = '';
+        document.getElementById('mrf').value = '';
+    }
+
+    // Сәйкестендірулер тізімін көрсету
+    function displayMatchingList() {
+        let container = document.getElementById('matching-list');
+        let itemsDiv = document.getElementById('matching-items');
+        
+        if (tasks.matching.length > 0) {
+            container.style.display = 'block';
+            let html = '';
+            tasks.matching.forEach((pair, index) => {
+                html += `<div class="task-item">
+                    <strong>${index + 1}. Жұп:</strong><br>
+                    Сол: ${pair.left.text || '(сурет)'} ${pair.left.img ? '<br><img src="' + pair.left.img + '">' : ''}<br>
+                    Оң: ${pair.right.text || '(сурет)'} ${pair.right.img ? '<br><img src="' + pair.right.img + '">' : ''}
+                </div>`;
+            });
+            itemsDiv.innerHTML = html;
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    function addEssay() {
+        let text = document.getElementById('essay-text').value;
+        if(!text) return alert("Мәтін жазыңыз!");
+        tasks.essay.push(text);
+        document.getElementById('c-essay').innerText = tasks.essay.length;
+        displayEssayList();
+        document.getElementById('essay-text').value = '';
+    }
+
+    // Эсселер тізімін көрсету
+    function displayEssayList() {
+        let container = document.getElementById('essay-list');
+        let itemsDiv = document.getElementById('essay-items');
+        
+        if (tasks.essay.length > 0) {
+            container.style.display = 'block';
+            let html = '';
+            tasks.essay.forEach((essay, index) => {
+                html += `<div class="task-item">
+                    <strong>${index + 1}. Эссе мәтіні:</strong><br>
+                    ${essay.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}
+                </div>`;
+            });
+            itemsDiv.innerHTML = html;
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    function saveAndStart() {
+        if(tasks.test.length === 0 && tasks.matching.length === 0 && tasks.essay.length === 0) {
+            return alert("Алдымен тапсырма қосыңыз!");
+        }
+        
+        sessionId = Math.floor(1000 + Math.random() * 9000).toString();
+        
+        // Кесте басын құру
+        let thHtml = '<th>Аты-жөні</th><th>Статус</th>';
+        if(tasks.test.length > 0) thHtml += `<th>Тест (Max: ${tasks.test.length})</th>`;
+        if(tasks.matching.length > 0) thHtml += `<th>Сәйкес-ру (Max: ${tasks.matching.length})</th>`;
+        if(tasks.essay.length > 0) {
+            let eMax = tasks.essay.reduce((acc, text) => acc + (text.match(/\*\*(.*?)\*\*/g) || []).length, 0);
+            thHtml += `<th>Эссе (Max: ${eMax})</th>`;
+        }
+        thHtml += '<th>Жалпы % / Баға</th>';
+        document.getElementById('monitor-head').innerHTML = thHtml;
+
+        document.getElementById('creator-view').style.display = 'none';
+        document.getElementById('lobby-view').style.display = 'block';
+
+        peer = new Peer('kzedu_' + sessionId);
+
+        peer.on('open', function(id) {
+            document.getElementById('room-id-display').innerText = sessionId;
+        });
+
+        peer.on('connection', function(conn) {
+            conn.on('data', function(data) {
+                if(data.type === 'join') {
+                    students[data.id] = { 
+                        name: data.name, 
+                        status: 'waiting', 
+                        scores: {test:0, matching:0, essay:0},
+                        conn: conn 
+                    };
+                    updateLobby();
+                } 
+                else if (data.type === 'finish') {
+                    if(students[data.id]) {
+                        students[data.id].status = 'finished';
+                        students[data.id].scores = data.scores;
+                        updateLobby();
+                    }
+                }
+            });
+        });
+
+        peer.on('error', function(err) {
+            alert("Қате пайда болды: " + err.type + "\nБетті жаңартып, қайта көріңіз.");
+        });
+    }
+
+    function startExam() {
+        let sKeys = Object.keys(students);
+        if(sKeys.length === 0) return alert("Әлі ешқандай оқушы қосылған жоқ!");
+
+        // Оқушыларға тапсырмаларды жіберу (суреттермен бірге)
+        sKeys.forEach(id => {
+            students[id].status = 'started';
+            students[id].conn.send({ 
+                type: 'start', 
+                tasks: {
+                    test: tasks.test.map(t => ({
+                        q: t.q,
+                        options: t.options,
+                        image: t.image  // Суретті де жібереміз!
+                    })),
+                    matching: tasks.matching,
+                    essay: tasks.essay
+                }
+            });
+        });
+
+        document.getElementById('start-exam-btn').style.display = 'none';
+        updateLobby();
+    }
+
+    function getBadge(score, max) {
+        if(max === 0) return '-';
+        let pct = (score / max) * 100;
+        let c = pct >= 80 ? 'b-green' : (pct >= 60 ? 'b-yellow' : 'b-red');
+        return `<span class="badge ${c}">${score}/${max}</span>`;
+    }
+
+    function getTextGrade(pct) {
+        if(pct >= 85) return "Өте жақсы";
+        if(pct >= 65) return "Жақсы";
+        if(pct >= 40) return "Орта";
+        return "Төмен";
+    }
+
+    function updateLobby() {
+        let sts = Object.values(students);
+        let html = '';
+        let allFinished = sts.length > 0;
+
+        let eMax = tasks.essay.reduce((acc, text) => acc + (text.match(/\*\*(.*?)\*\*/g) || []).length, 0);
+        let totalMax = tasks.test.length + tasks.matching.length + eMax;
+
+        sts.forEach(s => {
+            if(s.status !== 'finished') allFinished = false;
+            let statusText = s.status === 'waiting' ? '⏳ Күтуде' : (s.status === 'started' ? '✍️ Орындауда' : '✅ Аяқтады');
+            
+            html += `<tr><td><b>${s.name}</b></td><td>${statusText}</td>`;
+            
+            if(tasks.test.length > 0) {
+                html += `<td>${s.status === 'finished' ? getBadge(s.scores.test, tasks.test.length) : '-'}</td>`;
+            }
+            if(tasks.matching.length > 0) {
+                html += `<td>${s.status === 'finished' ? getBadge(s.scores.matching, tasks.matching.length) : '-'}</td>`;
+            }
+            if(tasks.essay.length > 0) {
+                html += `<td>${s.status === 'finished' ? getBadge(s.scores.essay, eMax) : '-'}</td>`;
+            }
+            
+            if(s.status === 'finished') {
+                let totalS = s.scores.test + s.scores.matching + s.scores.essay;
+                let pct = (totalS / totalMax) * 100;
+                let c = pct >= 80 ? 'b-green' : (pct >= 60 ? 'b-yellow' : 'b-red');
+                html += `<td><span class="badge ${c}">${pct.toFixed(1)}% (${getTextGrade(pct)})</span></td>`;
+            } else {
+                html += `<td>-</td>`;
+            }
+            html += `</tr>`;
+        });
+        document.getElementById('monitor-body').innerHTML = html;
+
+        if(allFinished && sts.length > 0 && !document.getElementById('summary-report').style.display.includes('block')) {
+            generateReport(sts, totalMax, eMax);
+        }
+    }
+
+    function generateReport(sts, totalMax, eMax) {
+        let tSum=0, mSum=0, eSum=0, totalSum=0;
+        sts.forEach(s => {
+            tSum += s.scores.test;
+            mSum += s.scores.matching;
+            eSum += s.scores.essay;
+            totalSum += (s.scores.test + s.scores.matching + s.scores.essay);
+        });
+
+        let n = sts.length;
+        let avgTotalPct = ((totalSum / n) / totalMax) * 100;
+        let pT = tasks.test.length ? ((tSum/n)/tasks.test.length)*100 : null;
+        let pM = tasks.matching.length ? ((mSum/n)/tasks.matching.length)*100 : null;
+        let pE = eMax ? ((eSum/n)/eMax)*100 : null;
+
+        let weak = [];
+        if(pT !== null) weak.push({name: 'Тест', val: pT});
+        if(pM !== null) weak.push({name: 'Сәйкестендіру', val: pM});
+        if(pE !== null) weak.push({name: 'Эссе', val: pE});
+        weak.sort((a,b) => a.val - b.val);
+
+        let html = `<h3>📈 Жалпы сынып есебі</h3>
+                    <p><b>Сыныптың орташа көрсеткіші:</b> ${avgTotalPct.toFixed(1)}% - <b>${getTextGrade(avgTotalPct)}</b></p>
+                    <ul>`;
+        if(pT !== null) html += `<li>Тест: ${pT.toFixed(1)}%</li>`;
+        if(pM !== null) html += `<li>Сәйкестендіру: ${pM.toFixed(1)}%</li>`;
+        if(pE !== null) html += `<li>Эссе: ${pE.toFixed(1)}%</li>`;
+        html += `</ul>`;
+        if(weak.length > 0) {
+            html += `<p style="color:var(--danger)"><b>⚠️ Ең төмен көрсеткіш:</b> ${weak[0].name} (${weak[0].val.toFixed(1)}%) - осы тақырыпты/тапсырманы қайталау қажет.</p>`;
+        }
+        
+        let reportDiv = document.getElementById('summary-report');
+        reportDiv.innerHTML = html;
+        reportDiv.style.display = 'block';
+    }
+</script>
+</body>
+</html>
